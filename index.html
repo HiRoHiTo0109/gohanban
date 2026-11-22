@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ごはん番</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: やさしく、迷わせない。台所に貼った頼れるメモ
+   IDEA: 冷蔵庫の扉に貼るマグネット付きメモ帳
+   PICTURE: 動くアプリそのもの（期限マグネット＋献立カード）
+   COLOUR and TYPE: 卵黄イエロー主、こげ茶インク、トマト赤アクセント／Zen Maru Gothic
+   LAYOUT: 1カラム、下に3つのタブ。スマホ前提で最大560px */
+:root{color-scheme:light dark;
+--bg:light-dark(#fff6e0,#1c1712);--card:light-dark(#ffffff,#2a231c);--ink:light-dark(#2b2118,#f6eddf);
+--sub:light-dark(#7a6a58,#bcae9b);--line:light-dark(#efe2c6,#3d342a);--yolk:#ffc93c;--yolkd:light-dark(#f2b310,#e0a800);
+--tom:light-dark(#d9402a,#ff6b52);--tomS:light-dark(#fde3dc,#4a221b);--leaf:light-dark(#2f8a4c,#6fd08f);--leafS:light-dark(#dcf2e2,#1f3a28);
+--warmS:light-dark(#fff0c2,#45381a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;overflow-x:clip}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;min-height:44px;border-radius:14px}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--tom);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 110px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px 14px}
+h1{font-size:32px;line-height:1.05;margin:0;font-weight:900;letter-spacing:.02em}
+h1 small{display:block;font-size:13px;font-weight:500;color:var(--sub);margin-top:6px;letter-spacing:0}
+.count{background:var(--yolk);color:#2b2118;border-radius:50%;width:64px;height:64px;display:grid;place-items:center;text-align:center;font-weight:900;font-size:22px;line-height:1;flex:none;box-shadow:0 4px 0 var(--yolkd)}
+.count span{display:block;font-size:11px;font-weight:700;margin-top:3px}
+h2{font-size:20px;margin:26px 0 10px;font-weight:900}
+.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:0 2px 0 var(--line)}
+.mags{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none}
+.mag{flex:none;border-radius:16px;padding:10px 14px;min-width:96px;text-align:center;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.08)}
+.mag b{display:block;font-size:28px;line-height:1.2}.mag i{font-style:normal;font-size:13px;display:block}
+.over{background:var(--tom);color:#fff}.hot{background:var(--tomS);color:var(--tom)}.warm{background:var(--warmS)}.ok{background:var(--leafS);color:var(--leaf)}
+.empty{color:var(--sub);font-size:15px;padding:8px 2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.tog{border:2px solid var(--line);background:var(--card);padding:6px 14px;font-weight:700;font-size:15px}
+.tog[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+details{margin-top:10px}summary{cursor:pointer;color:var(--sub);font-size:14px;min-height:32px;display:flex;align-items:center}
+.sec{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sec span{font-size:13px;color:var(--sub)}
+.rc{background:var(--card);border-radius:20px;padding:14px 16px 12px;margin-bottom:12px;box-shadow:0 2px 0 var(--line)}
+.rt{display:flex;gap:12px;align-items:center}
+.rt .e{font-size:38px;line-height:1;flex:none}
+.rt h3{margin:0;font-size:19px;line-height:1.3}
+.meta{font-size:13px;color:var(--sub)}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;margin:2px 4px 0 0;background:var(--warmS)}
+.tag.kid{background:var(--yolk);color:#2b2118}
+.ing{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.ing span{font-size:14px;border-radius:10px;padding:2px 10px;background:var(--leafS);color:var(--leaf);font-weight:700}
+.ing span.miss{background:var(--tomS);color:var(--tom)}
+.hint{font-size:14px;margin:4px 0 8px;color:var(--tom);font-weight:700}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--yolk);color:#2b2118;font-weight:900;padding:0 18px;box-shadow:0 3px 0 var(--yolkd)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--yolkd)}
+.ghost{border:2px solid var(--line);padding:0 14px;font-weight:700;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);border-radius:14px;min-height:44px;font-size:15px}
+.more{width:100%;color:var(--sub);font-weight:700}
+.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.row .e{font-size:30px}
+.row .n{font-weight:700;font-size:17px}
+.row .d{font-size:13px;white-space:nowrap;border-radius:8px;padding:0 6px;display:inline-block}
+.row input[type=date]{font-size:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:2px 6px;margin-top:2px;max-width:150px}
+.qty{display:flex;align-items:center;gap:2px}
+.qty button{width:40px;height:40px;min-height:40px;border-radius:12px;background:var(--bg);font-size:22px;font-weight:900}
+.qty b{min-width:26px;text-align:center}
+.say{display:flex;gap:8px}
+.say input{flex:1;font-size:17px;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card)}
+.mic{width:52px;flex:none;background:var(--tom);color:#fff;font-size:22px}
+.note{font-size:13px;color:var(--sub);margin:8px 2px 0}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.q{background:var(--card);border-radius:16px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;font-weight:700;box-shadow:0 2px 0 var(--line)}
+.q b{font-size:30px;line-height:1.1;font-weight:400}
+.q:active{transform:translateY(2px);box-shadow:none}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:5}
+nav div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;max-width:560px}
+nav button{display:flex;flex-direction:column;align-items:center;font-size:12px;font-weight:700;color:var(--sub);padding:4px 0;min-height:54px}
+nav button b{font-size:24px;line-height:1.1;font-weight:400}
+nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
+#toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);border-radius:16px;padding:10px 16px;font-size:15px;font-weight:700;display:flex;gap:12px;align-items:center;transition:.25s;z-index:9;width:max-content;max-width:calc(100vw - 32px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast button{color:var(--yolk);min-height:32px;padding:0 6px;text-decoration:underline}
+.danger{color:var(--tom);font-size:14px;font-weight:700}
+.pick{margin-top:10px}.pick h3{margin:0 0 8px;font-size:17px}
+.pick button{display:block;width:100%;text-align:start;padding:8px 12px;border-bottom:1px solid var(--line);border-radius:0;font-size:15px}
+.pick button:last-child{border:0}.pick .x{color:var(--sub);font-size:14px}
+.q[aria-pressed=true]{outline:3px solid var(--yolk)}
+.sz{font-size:13px;color:var(--sub);margin:0 0 8px}.sz .m{color:var(--tom);font-weight:700}
+.brand{font-size:12px;color:var(--sub);font-weight:500}
+.gw{display:flex;flex-direction:column;align-items:center;gap:2px;width:112px}
+.gauge{display:flex;gap:3px}
+.gauge button{width:24px;height:36px;min-height:36px;border-radius:7px;background:var(--line);padding:0}
+.gauge button.f{background:var(--yolk)}.gauge.low button.f{background:var(--tom)}
+.gl{font-size:12px;font-weight:700;white-space:nowrap}
+.use{font-size:12px;color:var(--sub);min-height:28px;padding:0 6px;text-decoration:underline}
+.mag.low{background:var(--warmS);color:var(--ink);outline:2px dashed var(--yolkd)}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(max-width:380px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>ごはん番<small>冷蔵庫を見て、今日の献立を考えます</small></h1>
+  <div class="count" id="cnt"></div>
+</header>
+
+<main>
+<section id="v-home">
+  <div class="sec"><h2>⚠️ もうすぐ期限・残りわずか</h2><span>早く使いたい順</span></div>
+  <div class="mags" id="alerts"></div>
+
+  <div class="sec"><h2>🍳 今日なに作る？</h2></div>
+  <div class="chips">
+    <button class="tog" id="kidBtn" aria-pressed="false">👶 子供向けを優先</button>
+    <button class="tog" id="quickBtn" aria-pressed="false">⏱ 15分以内</button>
+    <button class="tog" id="seasBtn" aria-pressed="false">🧂 調味料もチェック</button>
+  </div>
+  <details><summary>アレルギーの設定（その食材を使う料理を出さない）</summary>
+    <div class="chips" id="allergy" style="margin-top:6px"></div>
+  </details>
+
+  <div class="sec"><h2>✅ 今ある材料で作れる</h2></div>
+  <div id="can"></div>
+  <div class="sec"><h2>🛒 あと1品買えば作れる</h2></div>
+  <div id="one"></div>
+  <p class="note" id="seasNote"></p>
+</section>
+
+<section id="v-fridge" hidden>
+  <div class="sec"><h2>🧊 冷蔵庫の中</h2><span>期限が近い順</span></div>
+  <div class="card" id="list"></div>
+  <div class="sec"><h2>🧂 調味料</h2><span>期限は開封後の目安</span></div>
+  <div class="card" id="slist"></div>
+  <p class="note">期限は食材ごとの目安で自動的に入ります。袋の日付と違うときは、日付を押して直してください。牛乳・お肉・調味料などは、目盛りを押して残りをだいたいで合わせてください。</p>
+  <p id="sampleNote" class="note" hidden>最初はサンプルの食材が入っています。<button class="danger" id="clearBtn">冷蔵庫を空にする</button></p>
+</section>
+
+<section id="v-add" hidden>
+  <h2>🎤 話して・書いて追加</h2>
+  <form class="say" id="sayForm">
+    <input id="sayIn" placeholder="例：にんじん3本、牛乳、豚こま" autocomplete="off" enterkeyhint="done">
+    <button type="button" class="mic" id="micBtn" aria-label="声で入力">🎤</button>
+  </form>
+  <div class="acts" style="margin-top:8px"><button class="btn" form="sayForm">まとめて追加</button></div>
+  <p class="note">マイクが使えないときは、スマホのキーボードにあるマイクボタンで話しても入力できます。</p>
+  <h2>👆 よく買う物（1回押すと1つ追加）</h2>
+  <div id="quick"></div>
+  <h2>🧂 調味料（種類→メーカーを選ぶ）</h2>
+  <div class="grid" id="sgrid"></div>
+  <div class="card pick" id="pick" hidden></div>
+  <p class="note">メーカーと商品名は代表的なものの例です。リストにない商品は「メーカーを選ばずに追加」を使ってください。</p>
+</section>
+</main>
+</div>
+
+<nav><div>
+  <button data-v="home" aria-current="true"><b>🍳</b>今日なに作る？</button>
+  <button data-v="fridge"><b>🧊</b>冷蔵庫</button>
+  <button data-v="add"><b>➕</b>食材を追加</button>
+</div></nav>
+<div id="toast" role="status"><span id="tMsg"></span><button id="tUndo" hidden>元に戻す</button></div>
+
+<script>
+{
+// ---- 食材の辞書：[名前, 絵, 分類, 目安の日数, 別名] ----
+const FOODS=[
+['にんじん','🥕','野菜',14,['人参','ニンジン']],['玉ねぎ','🧅','野菜',30,['たまねぎ','タマネギ','玉葱']],
+['じゃがいも','🥔','野菜',30,['ジャガイモ','じゃが芋','ポテト']],['キャベツ','🥬','野菜',10,['きゃべつ']],
+['トマト','🍅','野菜',5,['とまと','ミニトマト']],['きゅうり','🥒','野菜',5,['キュウリ','胡瓜']],
+['なす','🍆','野菜',5,['ナス','茄子']],['ピーマン','🫑','野菜',7,['ぴーまん']],
+['ブロッコリー','🥦','野菜',4,['ぶろっこりー']],['ほうれん草','🥬','野菜',3,['ほうれんそう','ホウレンソウ']],
+['小松菜','🥬','野菜',3,['こまつな']],['もやし','🌱','野菜',2,['モヤシ']],
+['ねぎ','🌿','野菜',7,['ネギ','長ねぎ','長ネギ','青ねぎ','葱']],['大根','🥢','野菜',10,['だいこん','ダイコン']],
+['白菜','🥬','野菜',10,['はくさい','ハクサイ']],['かぼちゃ','🎃','野菜',7,['カボチャ','南瓜']],
+['しめじ','🍄','野菜',5,['きのこ','キノコ','えのき','まいたけ']],
+['豚こま','🥩','肉・魚',3,['豚肉','豚こま切れ','豚バラ','ぶたにく']],['鶏もも','🍗','肉・魚',2,['鶏肉','とりにく','鶏もも肉','とりもも']],
+['鶏むね','🍗','肉・魚',2,['鶏むね肉','むね肉','とりむね']],['ひき肉','🥩','肉・魚',2,['合いびき','合挽き','挽き肉','ひきにく']],
+['鮭','🐟','肉・魚',2,['さけ','サケ','しゃけ','サーモン']],['ベーコン','🥓','肉・魚',7,['べーこん']],
+['ハム','🍖','肉・魚',7,['はむ']],['ウインナー','🌭','肉・魚',10,['ソーセージ','ウィンナー']],
+['ツナ缶','🥫','肉・魚',365,['ツナ','つな']],['ちくわ','🍢','肉・魚',7,['竹輪']],
+['卵','🥚','卵・乳・豆',14,['たまご','玉子','タマゴ']],['牛乳','🥛','卵・乳・豆',7,['ぎゅうにゅう','ミルク']],
+['ヨーグルト','🍶','卵・乳・豆',10,['よーぐると']],['チーズ','🧀','卵・乳・豆',20,['ちーず','とろけるチーズ']],
+['バター','🧈','卵・乳・豆',60,['ばたー']],['豆腐','⬜','卵・乳・豆',5,['とうふ','トウフ']],
+['納豆','🫘','卵・乳・豆',10,['なっとう','ナットウ']],['油揚げ','🟫','卵・乳・豆',5,['あぶらあげ','油あげ']],
+['食パン','🍞','主食など',4,['パン','しょくぱん']],['うどん','🍜','主食など',5,['ゆでうどん']],
+['パスタ','🍝','主食など',365,['スパゲッティ','スパゲティ']]
+];
+// ---- 調味料：[名前, 絵, 開封後の目安日数, 別名, [メーカー 商品名…]] ----
+const SEAS=[
+['しょうゆ','🍶',30,['醤油','しょう油','しょうゆ'],['キッコーマン いつでも新鮮 しぼりたて生しょうゆ','キッコーマン 特選丸大豆しょうゆ','ヤマサ 鮮度の一滴 特選しょうゆ','ヒゲタ 本膳']],
+['みそ','🥣',60,['味噌','ミソ'],['マルコメ 料亭の味','マルコメ プラス糀 生みそ','ハナマルキ すぐおいしい味噌']],
+['砂糖','🍬',365,['さとう','上白糖'],['三井製糖 スプーン印 上白糖','日新製糖 カップ印 上白糖']],
+['塩','🧂',365,['しお','食塩'],['伯方塩業 伯方の塩','味の素 アジシオ','塩事業センター 食卓塩']],
+['こしょう','🌶️',180,['コショウ','胡椒','塩こしょう'],['S&B テーブルコショー','ダイショー 味・塩こしょう']],
+['料理酒','🍶',90,['酒','りょうりしゅ'],['宝酒造 タカラ料理のための清酒','キッコーマン マンジョウ 料理の清酒']],
+['みりん','🍯',90,['味醂','本みりん'],['宝酒造 タカラ本みりん','キッコーマン マンジョウ 本みりん','ミツカン 本みりん']],
+['酢','🫙',365,['す','穀物酢'],['ミツカン 穀物酢','ミツカン りんご酢']],
+['油','🛢️',60,['サラダ油','キャノーラ油','サラダあぶら'],['日清オイリオ 日清キャノーラ油','J-オイルミルズ AJINOMOTO さらさらキャノーラ油']],
+['ごま油','🫗',90,['ごまあぶら','胡麻油'],['かどや 純正ごま油','竹本油脂 マルホン 太白胡麻油']],
+['オリーブオイル','🫒',90,['オリーブ油'],['日清オイリオ BOSCO エキストラバージンオリーブオイル','AJINOMOTO オリーブオイル エクストラバージン']],
+['マヨネーズ','🥚',30,['マヨ'],['キユーピー マヨネーズ','味の素 ピュアセレクト マヨネーズ']],
+['ケチャップ','🍅',30,['けちゃっぷ'],['カゴメ トマトケチャップ','デルモンテ トマトケチャップ']],
+['ソース','🟤',60,['中濃ソース','ウスターソース','とんかつソース'],['ブルドック 中濃ソース','オタフク お好みソース','カゴメ 醸熟ソース ウスター']],
+['めんつゆ','🥢',30,['つゆ','麺つゆ'],['ミツカン 追いがつおつゆ 2倍','にんべん つゆの素','ヤマキ めんつゆ']],
+['ポン酢','🍋',30,['ぽん酢','ポンズ'],['ミツカン 味ぽん','ヤマサ 昆布ぽん酢']],
+['だし','🐟',365,['和風だし','顆粒だし','だしの素'],['味の素 ほんだし','シマヤ だしの素','ヤマキ 顆粒和風だし']],
+['コンソメ','🍲',365,['ブイヨン'],['味の素 コンソメ','ネスレ マギー ブイヨン']],
+['鶏ガラ','🐔',365,['鶏がら','鶏がらスープ','中華だし','ガラスープ'],['味の素 丸鶏がらスープ','ユウキ食品 化学調味料無添加のガラスープ','創味食品 シャンタン']],
+['片栗粉','⚪',365,['かたくりこ'],['ホクレン 片栗粉']],
+['小麦粉','🌾',180,['薄力粉','こむぎこ'],['日清製粉ウェルナ 日清 フラワー','日清製粉ウェルナ 日清 クッキングフラワー']],
+['カレールー','🍛',180,['カレーのルー','ルー'],['ハウス バーモントカレー','ハウス ジャワカレー','S&B ゴールデンカレー','江崎グリコ こくまろカレー']],
+['焼肉のたれ','🥩',30,['焼き肉のたれ','焼肉のタレ'],['エバラ 黄金の味','モランボン ジャン 焼肉の生だれ']],
+['にんにくチューブ','🧄',60,['にんにく','ニンニク','おろしにんにく'],['S&B おろし生にんにく','ハウス おろし生にんにく']],
+['しょうがチューブ','🫚',60,['しょうが','生姜','ショウガ','おろししょうが'],['S&B おろし生しょうが','ハウス おろし生しょうが']]
+];
+const F={};const ALIAS={};const PROD=[];
+FOODS.forEach(([n,e,c,d,a])=>{F[n]={n,e,c,d};ALIAS[n]=n;a.forEach(x=>ALIAS[x]=n)});
+SEAS.forEach(([n,e,d,a,p])=>{F[n]={n,e,c:'調味料',d,s:1,p};ALIAS[n]=n;a.forEach(x=>ALIAS[x]=n);p.forEach(b=>PROD.push({n,b}))});
+const isS=n=>F[n]&&F[n].s;
+// 少しずつ使う物（個数ではなく残量の目盛りで管理）
+const AMT=new Set(['牛乳','ヨーグルト','チーズ','バター','豚こま','鶏もも','鶏むね','ひき肉','ベーコン','ハム','ウインナー','キャベツ','白菜','大根','かぼちゃ','もやし','ほうれん草','小松菜','ねぎ','しめじ','パスタ','食パン','ツナ缶']);
+const isA=n=>isS(n)||AMT.has(n);
+const LV={1:'少し',2:'半分くらい',3:'7割くらい',4:'たっぷり'};
+
+// ---- 料理：[名前, 絵, 分, 材料, 調味料, タグ, 子供向け] ----
+const RECIPES=[
+['親子丼','🍲',15,['鶏もも','玉ねぎ','卵'],['しょうゆ','みりん','砂糖','だし'],['たんぱく質'],1],
+['肉じゃが','🥘',30,['豚こま','じゃがいも','にんじん','玉ねぎ'],['しょうゆ','みりん','砂糖','料理酒'],['野菜たっぷり'],1],
+['野菜炒め','🥬',10,['豚こま','キャベツ','もやし','にんじん'],['塩','こしょう','油','鶏ガラ'],['野菜たっぷり'],0],
+['オムライス','🍳',20,['卵','鶏もも','玉ねぎ'],['ケチャップ','塩','油'],['たんぱく質'],1],
+['カレーライス','🍛',40,['豚こま','じゃがいも','にんじん','玉ねぎ'],['カレールー','油'],['野菜たっぷり'],1],
+['豆腐とねぎのみそ汁','🥣',10,['豆腐','ねぎ'],['みそ','だし'],['たんぱく質'],1],
+['ほうれん草のおひたし','🥬',5,['ほうれん草'],['しょうゆ','だし'],['鉄分'],0],
+['鮭のちゃんちゃん焼き','🐟',20,['鮭','キャベツ','玉ねぎ'],['みそ','みりん','砂糖'],['たんぱく質','野菜たっぷり'],1],
+['大根とツナのサラダ','🥗',5,['大根','ツナ缶'],['マヨネーズ','しょうゆ'],['野菜たっぷり'],0],
+['麻婆豆腐','🌶️',15,['豆腐','ひき肉','ねぎ'],['鶏ガラ','しょうゆ','片栗粉','ごま油','にんにくチューブ'],['たんぱく質'],0],
+['ハンバーグ','🍔',30,['ひき肉','玉ねぎ','卵'],['ケチャップ','ソース','塩','こしょう'],['たんぱく質'],1],
+['ブロッコリーのチーズ焼き','🥦',10,['ブロッコリー','チーズ'],['塩','こしょう'],['カルシウム','野菜たっぷり'],1],
+['フレンチトースト','🍞',10,['食パン','卵','牛乳'],['砂糖'],['カルシウム'],1],
+['ピーマンの肉詰め','🫑',25,['ピーマン','ひき肉','玉ねぎ'],['片栗粉','ケチャップ','ソース'],['野菜たっぷり'],0],
+['かぼちゃの煮物','🎃',20,['かぼちゃ'],['しょうゆ','砂糖','みりん','だし'],['野菜たっぷり'],1],
+['なすと豚肉のみそ炒め','🍆',10,['なす','豚こま'],['みそ','砂糖','料理酒','ごま油'],['野菜たっぷり'],0],
+['トマトと卵の炒め物','🍅',10,['トマト','卵'],['鶏ガラ','塩','ごま油'],['たんぱく質'],1],
+['鶏むねの照り焼き','🍗',15,['鶏むね'],['しょうゆ','みりん','砂糖','料理酒'],['たんぱく質'],1],
+['白菜と豚のミルフィーユ鍋','🍲',20,['白菜','豚こま'],['だし','しょうゆ','ポン酢'],['野菜たっぷり'],1],
+['焼きうどん','🍜',10,['うどん','豚こま','キャベツ'],['めんつゆ','油'],['野菜たっぷり'],1],
+['きのこのバターしょうゆパスタ','🍝',15,['パスタ','しめじ','ベーコン','バター'],['しょうゆ','塩'],[],1],
+['ジャーマンポテト','🥔',15,['じゃがいも','ウインナー','玉ねぎ'],['塩','こしょう','油'],[],1],
+['小松菜と油揚げの煮びたし','🥬',10,['小松菜','油揚げ'],['めんつゆ'],['カルシウム','鉄分'],0],
+['納豆オムレツ','🍳',10,['納豆','卵','ねぎ'],['しょうゆ','油'],['たんぱく質'],0],
+['きゅうりとちくわの和え物','🥒',5,['きゅうり','ちくわ'],['マヨネーズ'],[],1],
+['ポテトサラダ','🥗',20,['じゃがいも','きゅうり','にんじん','ハム'],['マヨネーズ','塩','こしょう'],['野菜たっぷり'],1],
+['クリームシチュー','🥣',35,['鶏もも','じゃがいも','にんじん','玉ねぎ','牛乳','ブロッコリー'],['小麦粉','コンソメ','塩'],['カルシウム','野菜たっぷり'],1],
+['キャベツのコンソメスープ','🥣',10,['キャベツ','ベーコン','玉ねぎ'],['コンソメ','塩','こしょう'],['野菜たっぷり'],1],
+['チーズオムレツ','🧀',10,['卵','チーズ','牛乳'],['塩','油'],['カルシウム','たんぱく質'],1],
+['もやしのナムル','🌱',5,['もやし'],['ごま油','鶏ガラ','塩'],['野菜たっぷり'],0],
+['豚汁','🥣',20,['豚こま','大根','にんじん','ねぎ','豆腐'],['みそ','だし'],['野菜たっぷり','たんぱく質'],1],
+['豚のしょうが焼き','🥩',15,['豚こま','玉ねぎ'],['しょうゆ','みりん','料理酒','しょうがチューブ'],['たんぱく質'],1],
+['焼肉のたれ炒め','🥩',10,['豚こま','ピーマン','玉ねぎ'],['焼肉のたれ','油'],['たんぱく質'],1]
+].map(([n,e,m,need,sz,tags,kid])=>({n,e,m,need,sz,tags,kid}));
+const ALG={'卵':['卵','マヨネーズ'],'乳':['牛乳','チーズ','バター','ヨーグルト'],'小麦':['食パン','うどん','パスタ','カレールー','小麦粉']};
+
+// ---- 日付 ----
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const addDays=n=>{const d=today();d.setDate(d.getDate()+n);return iso(d)};
+const left=exp=>Math.round((new Date(exp+'T00:00')-today())/864e5);
+const lvl=d=>d<0?'over':d<=1?'hot':d<=3?'warm':'ok';
+const lbl=d=>d<0?'期限切れ':d===0?'今日まで':d===1?'明日まで':'あと'+d+'日';
+const md=exp=>{const p=exp.split('-');return (+p[1])+'/'+(+p[2])};
+
+// ---- 保存（スマホの中だけ） ----
+const KEY='gohanban-v3';
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S){S={sample:true,kid:false,quick:false,alg:[],items:[
+['卵',4,10],['牛乳',1,2],['もやし',1,1],['豚こま',1,1],['キャベツ',1,6],['にんじん',3,12],
+['玉ねぎ',2,25],['豆腐',1,0],['ねぎ',1,5],['チーズ',1,15],['鶏もも',1,2],['じゃがいも',3,20]
+].map(([n,q,d],i)=>({id:i+1,n,q,exp:addDays(d),r:{'牛乳':2,'キャベツ':3,'チーズ':1}[n]||4})).concat([
+['しょうゆ','キッコーマン いつでも新鮮 しぼりたて生しょうゆ',40],['みそ','マルコメ 料亭の味',30],['砂糖','',200],['塩','',300],
+['油','日清オイリオ 日清キャノーラ油',25],['マヨネーズ','キユーピー マヨネーズ',12],['ケチャップ','カゴメ トマトケチャップ',2],['だし','味の素 ほんだし',150]
+].map(([n,b,d],i)=>({id:100+i,n,q:1,b,exp:addDays(d),r:{'ケチャップ':1,'マヨネーズ':2,'しょうゆ':3}[n]||4})))}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let nextId=Math.max(0,...S.items.map(i=>i.id))+1;
+const food=n=>F[n]||{n,e:'🍽️',c:'その他',d:5};
+
+// ---- お知らせ ----
+const toast=document.getElementById('toast'),tMsg=document.getElementById('tMsg'),tUndo=document.getElementById('tUndo');
+let tTimer,undoSnap=null;
+function say(msg,snap){tMsg.textContent=msg;undoSnap=snap||null;tUndo.hidden=!snap;toast.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>toast.classList.remove('on'),4000)}
+tUndo.onclick=()=>{if(undoSnap){S.items=undoSnap;save();render();say('元に戻しました')}};
+const snap=()=>JSON.parse(JSON.stringify(S.items));
+// 残量を1段階減らす。0になったら予備を開ける／なければ使い切り
+function useOne(it){if(isA(it.n)){it.r=(it.r||4)-1;if(it.r<=0){if(it.q>1){it.q-=1;it.r=4}else it.q=0}}else it.q-=1}
+
+// ---- 食材の追加 ----
+function addItem(name,q,b){
+  const f=food(name),exp=addDays(f.d);b=b||'';
+  const same=S.items.find(i=>i.n===name&&i.exp===exp&&(i.b||'')===b&&(i.r||4)===4);
+  if(same)same.q+=q;else S.items.push({id:nextId++,n:name,q,exp,b,r:4});
+  S.sample=false;return f;
+}
+const z2h=s=>s.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));
+const KAN={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+function parse(text){
+  const out=[];
+  z2h(text).split(/[、,，。\s・]+/).forEach(t=>{
+    if(!t)return;
+    let q=1;const m=t.match(/(\d+|[一二三四五六七八九十])\s*(個|本|枚|パック|袋|玉|切れ|株|束|缶|つ|丁)?$/);
+    if(m){q=KAN[m[1]]||parseInt(m[1],10)||1;t=t.slice(0,m.index)}
+    t=t.replace(/を$/,'').trim();if(!t)return;
+    let name=ALIAS[t],b='';
+    if(!name&&t.length>=2){const pr=PROD.find(x=>x.b.includes(t));if(pr){name=pr.n;b=pr.b}}
+    if(!name){const k=Object.keys(ALIAS).sort((a,b)=>b.length-a.length).find(a=>t.includes(a));name=k?ALIAS[k]:t}
+    out.push([name,q,b]);
+  });
+  return out;
+}
+
+// ---- 献立を考える ----
+function have(){const h={};S.items.forEach(i=>{const d=left(i.exp);if(d>=0&&(h[i.n]===undefined||d<h[i.n]))h[i.n]=d});return h}
+function suggest(){
+  const h=have(),bad=S.alg.flatMap(a=>ALG[a]);
+  return RECIPES.filter(r=>!r.need.concat(r.sz).some(x=>bad.includes(x))&&(!S.quick||r.m<=15)).map(r=>{
+    const sMiss=r.sz.filter(x=>h[x]===undefined);
+    const miss=r.need.filter(x=>h[x]===undefined).concat(S.chkS?sMiss:[]);
+    const used=r.need.filter(x=>h[x]!==undefined);
+    const urgent=used.filter(x=>h[x]<=3);
+    let score=urgent.reduce((s,x)=>s+(4-h[x])*3,0)+used.length;
+    if(S.kid)score+=(r.kid?6:0)+(r.tags.includes('野菜たっぷり')?2:0)+(r.tags.includes('カルシウム')?2:0);
+    return {...r,miss,sMiss,urgent,score};
+  }).sort((a,b)=>b.score-a.score);
+}
+const shown={can:4,one:4};
+function card(r){
+  const h=have();
+  const ing=r.need.concat(S.chkS?r.sMiss:[]).map(x=>'<span class="'+(r.miss.includes(x)?'miss':'')+'">'+food(x).e+' '+x+(r.miss.includes(x)?'（買う）':'')+'</span>').join('');
+  const tags=(r.kid?'<span class="tag kid">子供が喜ぶ</span>':'')+r.tags.map(t=>'<span class="tag">'+t+'</span>').join('');
+  const hint=r.urgent.length?'<p class="hint">使い切りチャンス：'+r.urgent.map(x=>x+'（'+lbl(h[x])+'）').join('、')+'</p>':'';
+  const sz='<p class="sz">調味料：'+r.sz.map(x=>S.chkS&&r.sMiss.includes(x)?'<span class="m">'+x+'（なし）</span>':x).join('・')+'</p>';
+  const act=r.miss.length?'':'<button class="btn" data-cook="'+r.n+'">作った！</button>';
+  return '<article class="rc"><div class="rt"><span class="e">'+r.e+'</span><div><h3>'+r.n+'</h3><div class="meta">約'+r.m+'分</div><div>'+tags+'</div></div></div>'+
+    '<div class="ing">'+ing+'</div>'+sz+hint+'<div class="acts">'+act+
+    '<a class="ghost" href="https://cookpad.com/search/'+encodeURIComponent(r.n)+'" target="_blank" rel="noopener">作り方を見る ↗</a></div></article>';
+}
+function list(id,arr,emptyMsg){
+  const el=document.getElementById(id);
+  if(!arr.length){el.innerHTML='<p class="empty">'+emptyMsg+'</p>';return}
+  el.innerHTML=arr.slice(0,shown[id]).map(card).join('')+(arr.length>shown[id]?'<button class="more" data-more="'+id+'">ほかの候補も見る（あと'+(arr.length-shown[id])+'品）</button>':'');
+}
+
+// ---- 残量の目盛り ----
+function gauge(i){const r=i.r||4;
+  return '<div class="gw"><div class="gauge'+(r===1?' low':'')+'">'+[1,2,3,4].map(k=>'<button data-g="'+i.id+'" data-k="'+k+'" class="'+(k<=r?'f':'')+'" aria-label="残り'+LV[k]+'にする"></button>').join('')+'</div>'+
+  '<div class="gl">'+LV[r]+(i.q>1?'＋予備'+(i.q-1):'')+'</div><button class="use" data-use="'+i.id+'">使い切った</button></div>'}
+// ---- 画面を描く ----
+function render(){
+  S.items=S.items.filter(i=>i.q>0).sort((a,b)=>a.exp.localeCompare(b.exp));
+  const n=S.items.length;
+  document.getElementById('cnt').innerHTML=n+'<span>食材</span>';
+  const soon=S.items.filter(i=>left(i.exp)<=3);
+  const low=S.items.filter(i=>left(i.exp)>3&&isA(i.n)&&(i.r||4)===1&&i.q<=1);
+  document.getElementById('alerts').innerHTML=(soon.length||low.length)?soon.map(i=>{const d=left(i.exp);return '<div class="mag '+lvl(d)+'"><b>'+food(i.n).e+'</b>'+i.n+'<i>'+lbl(d)+'</i></div>'}).join('')+
+    low.map(i=>'<div class="mag low"><b>'+food(i.n).e+'</b>'+i.n+'<i>残りわずか・買い足し</i></div>').join(''):'<p class="empty">期限が近い物も、残りわずかな物もありません。</p>';
+  const all=suggest();
+  list('can',all.filter(r=>!r.miss.length),'今の材料だけで作れる料理は見つかりませんでした。下の「あと1品」を見てください。');
+  list('one',all.filter(r=>r.miss.length===1),'あと1品で作れる料理はありません。食材を追加してみてください。');
+  document.getElementById('kidBtn').setAttribute('aria-pressed',S.kid);
+  document.getElementById('quickBtn').setAttribute('aria-pressed',S.quick);
+  document.getElementById('allergy').innerHTML=Object.keys(ALG).map(a=>'<button class="tog" data-alg="'+a+'" aria-pressed="'+S.alg.includes(a)+'">'+a+'</button>').join('');
+  const row=i=>{const d=left(i.exp);return '<div class="row"><span class="e">'+food(i.n).e+'</span><div><div class="n">'+i.n+(i.b?' <span class="brand">'+i.b+'</span>':'')+'</div><span class="d '+lvl(d)+'">'+lbl(d)+'</span><br><input type="date" value="'+i.exp+'" data-exp="'+i.id+'" aria-label="'+i.n+'の期限"></div>'+(isA(i.n)?gauge(i):'<div class="qty"><button data-q="'+i.id+'" data-d="-1" aria-label="減らす">−</button><b>'+i.q+'</b><button data-q="'+i.id+'" data-d="1" aria-label="増やす">＋</button></div>')+'</div>'};
+  const fi=S.items.filter(i=>!isS(i.n)),si=S.items.filter(i=>isS(i.n));
+  document.getElementById('list').innerHTML=fi.length?fi.map(row).join(''):'<p class="empty">冷蔵庫は空です。「食材を追加」から入れてください。</p>';
+  document.getElementById('slist').innerHTML=si.length?si.map(row).join(''):'<p class="empty">調味料はまだ登録されていません。</p>';
+  document.getElementById('seasBtn').setAttribute('aria-pressed',!!S.chkS);
+  document.getElementById('seasNote').textContent=S.chkS?'登録した調味料で作れるかも判定しています。':'調味料はすべて家にあるものとして考えています。「🧂調味料もチェック」を押すと、登録した調味料で判定します。';
+  document.getElementById('sampleNote').hidden=!S.sample;
+  save();
+}
+// よく買う物ボタン（分類ごと）
+const cats=[...new Set(FOODS.map(f=>f[2]))];
+document.getElementById('quick').innerHTML=cats.map(c=>'<h3 style="font-size:15px;margin:14px 0 8px;color:var(--sub)">'+c+'</h3><div class="grid">'+FOODS.filter(f=>f[2]===c).map(f=>'<button class="q" data-add="'+f[0]+'"><b>'+f[1]+'</b>'+f[0]+'</button>').join('')+'</div>').join('');
+
+document.getElementById('sgrid').innerHTML=SEAS.map(x=>'<button class="q" data-sp="'+x[0]+'" aria-pressed="false"><b>'+x[1]+'</b>'+x[0]+'</button>').join('');
+const pick=document.getElementById('pick');
+function openPick(n){
+  const f=F[n];document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.sp===n));
+  pick.innerHTML='<h3>'+f.e+' '+n+' のメーカー</h3>'+f.p.map(b=>'<button data-sb="'+b+'" data-sn="'+n+'">'+b+'</button>').join('')+'<button class="x" data-sb="" data-sn="'+n+'">メーカーを選ばずに追加</button>';
+  pick.hidden=false;if(pick.scrollIntoView)pick.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+// ---- 操作 ----
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.v){document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-current',x===b));['home','fridge','add'].forEach(v=>document.getElementById('v-'+v).hidden=v!==b.dataset.v);window.scrollTo(0,0);render();return}
+  if(b.dataset.add){const sn=snap(),f=addItem(b.dataset.add,1);render();say(f.e+' '+f.n+'を追加（期限 '+md(addDays(f.d))+' 目安）',sn);return}
+  if(b.dataset.q){const it=S.items.find(i=>i.id==b.dataset.q);if(it){const sn=snap();it.q+= +b.dataset.d;render();if(it.q<=0)say(it.n+'を使い切りました',sn)}return}
+  if(b.dataset.g){const it=S.items.find(i=>i.id==b.dataset.g);if(it){it.r=+b.dataset.k;render()}return}
+  if(b.dataset.use){const it=S.items.find(i=>i.id==b.dataset.use);if(it){const sn=snap(),had=it.q;if(had>1){it.q-=1;it.r=4}else it.q=0;render();say(it.n+(had>1?'を1つ使い切りました。予備を開けました':'を使い切りました'),sn)}return}
+  if(b.dataset.sp){openPick(b.dataset.sp);return}
+  if(b.dataset.sn){const sn=snap(),f=addItem(b.dataset.sn,1,b.dataset.sb);pick.hidden=true;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed','false'));render();say(f.e+' '+f.n+(b.dataset.sb?'（'+b.dataset.sb+'）':'')+'を追加',sn);return}
+  if(b.dataset.more){shown[b.dataset.more]+=4;render();return}
+  if(b.dataset.alg){const a=b.dataset.alg;S.alg=S.alg.includes(a)?S.alg.filter(x=>x!==a):[...S.alg,a];render();return}
+  if(b.dataset.cook){
+    const r=RECIPES.find(x=>x.n===b.dataset.cook),sn=snap();
+    r.need.forEach(x=>{const it=S.items.filter(i=>i.n===x&&left(i.exp)>=0)[0];if(it)useOne(it)});
+    render();say(r.n+'を作りました。使った分を減らしました（調味料はそのまま）',sn);return}
+});
+document.getElementById('kidBtn').onclick=()=>{S.kid=!S.kid;render()};
+document.getElementById('quickBtn').onclick=()=>{S.quick=!S.quick;render()};
+document.getElementById('seasBtn').onclick=()=>{S.chkS=!S.chkS;render()};
+document.addEventListener('change',e=>{const id=e.target.dataset&&e.target.dataset.exp;if(id&&e.target.value){const it=S.items.find(i=>i.id==id);if(it){it.exp=e.target.value;render()}}});
+let clearArm=false;
+document.getElementById('clearBtn').onclick=e=>{if(!clearArm){clearArm=true;e.target.textContent='もう一度押すと空になります';return}const sn=snap();S.items=[];S.sample=false;render();say('冷蔵庫を空にしました',sn)};
+document.getElementById('sayForm').onsubmit=e=>{
+  e.preventDefault();const inp=document.getElementById('sayIn'),got=parse(inp.value);
+  if(!got.length){say('食材の名前を入れてください');return}
+  const sn=snap();got.forEach(([n,q,b])=>addItem(n,q,b));inp.value='';render();
+  say(got.map(([n,q])=>food(n).e+n+(q>1?'×'+q:'')).join(' ')+' を追加しました',sn);
+};
+// 声で入力（使えない環境ではキーボードのマイクを案内）
+document.getElementById('micBtn').onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){say('この画面ではマイクが使えません。キーボードのマイクで話してください');return}
+  try{const r=new SR();r.lang='ja-JP';r.onresult=ev=>{const inp=document.getElementById('sayIn');inp.value=(inp.value?inp.value+'、':'')+ev.results[0][0].transcript};
+    r.onerror=()=>say('マイクが使えませんでした。キーボードのマイクで話してください');r.start();say('どうぞ、食材を話してください')}
+  catch(err){say('マイクが使えませんでした。キーボードのマイクで話してください')}
+};
+render();
+}
+</script>
+</body>
+</html>
