@@ -76,7 +76,7 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--sub);font-size:14px;m
 .q b{font-size:30px;line-height:1.1;font-weight:400}
 .q:active{transform:translateY(2px);box-shadow:none}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:5}
-nav div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;max-width:560px}
+nav div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;max-width:560px}
 nav button{display:flex;flex-direction:column;align-items:center;font-size:12px;font-weight:700;color:var(--sub);padding:4px 0;min-height:54px}
 nav button b{font-size:24px;line-height:1.1;font-weight:400}
 nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
@@ -97,6 +97,16 @@ nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
 .gl{font-size:12px;font-weight:700;white-space:nowrap}
 .use{font-size:12px;color:var(--sub);min-height:28px;padding:0 6px;text-decoration:underline}
 .mag.low{background:var(--warmS);color:var(--ink);outline:2px dashed var(--yolkd)}
+#shopN:not(:empty){position:absolute;margin:-6px 0 0 30px;background:var(--tom);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;line-height:18px}
+nav button{position:relative}
+.field{width:100%;font-size:17px;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--card)}
+.wl{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:16px;min-height:48px;cursor:pointer}
+.wl:last-of-type{border:0}.wl input{width:22px;height:22px;flex:none;accent-color:var(--tom)}
+.wl .st{margin-inline-start:auto;font-size:13px;font-weight:700;white-space:nowrap}
+.st.ok2{color:var(--leaf)}.st.no{color:var(--tom)}.st.mb{color:var(--yolkd)}
+.sl{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.sl:last-child{border:0}.sl .e{font-size:26px}.sl small{display:block;color:var(--sub);font-size:12px}
+.x2{color:var(--sub);font-size:20px;width:40px}
 [hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media(max-width:380px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}h1{font-size:28px}}
@@ -105,7 +115,7 @@ nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
 <body>
 <div class="wrap">
 <header>
-  <h1>ごはん番<small>冷蔵庫を見て、今日の献立を考えます</small></h1>
+  <h1>ごはん番<small>冷蔵庫を見て、今日の献立を考えます</small><small id="syncLine"></small></h1>
   <div class="count" id="cnt"></div>
 </header>
 
@@ -138,6 +148,19 @@ nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
   <div class="card" id="slist"></div>
   <p class="note">期限は食材ごとの目安で自動的に入ります。袋の日付と違うときは、日付を押して直してください。牛乳・お肉・調味料などは、目盛りを押して残りをだいたいで合わせてください。</p>
   <p id="sampleNote" class="note" hidden>最初はサンプルの食材が入っています。<button class="danger" id="clearBtn">冷蔵庫を空にする</button></p>
+  <h2>👨‍👩‍👧 家族で共有</h2>
+  <div class="card" id="share"></div>
+</section>
+
+<section id="v-shop" hidden>
+  <h2>🔍 作りたい料理から探す</h2>
+  <input id="wantIn" class="field" placeholder="料理の名前（例：カレー、親子丼）" autocomplete="off">
+  <div class="chips" id="wantList" style="margin-top:10px"></div>
+  <div id="wantBox"></div>
+  <div class="sec"><h2>🛒 買い物リスト</h2><span id="shopCnt"></span></div>
+  <div class="card" id="shopList"></div>
+  <form class="say" id="shopForm" style="margin-top:10px"><input id="shopIn" placeholder="手で追加（例：トイレットペーパー）" autocomplete="off"><button class="btn" style="flex:none">追加</button></form>
+  <p class="note">「買った」を押すと冷蔵庫に入ります（食材・調味料のとき）。家族で共有していると、買い物リストも家族全員に同じものが出ます。</p>
 </section>
 
 <section id="v-add" hidden>
@@ -162,11 +185,18 @@ nav button[aria-current=true]{background:var(--yolk);color:#2b2118}
   <button data-v="home" aria-current="true"><b>🍳</b>今日なに作る？</button>
   <button data-v="fridge"><b>🧊</b>冷蔵庫</button>
   <button data-v="add"><b>➕</b>食材を追加</button>
+  <button data-v="shop"><b>🛒</b>買い物<span id="shopN"></span></button>
 </div></nav>
 <div id="toast" role="status"><span id="tMsg"></span><button id="tUndo" hidden>元に戻す</button></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
 {
+// ==== Supabaseの設定（ここに自分のプロジェクトの値を貼る） ====
+const SUPA_URL='';   // 例：https://abcdefgh.supabase.co
+const SUPA_KEY='';   // anon（公開用）キー
+// ============================================================
+const uid=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)});
 // ---- 食材の辞書：[名前, 絵, 分類, 目安の日数, 別名] ----
 const FOODS=[
 ['にんじん','🥕','野菜',14,['人参','ニンジン']],['玉ねぎ','🧅','野菜',30,['たまねぎ','タマネギ','玉葱']],
@@ -275,25 +305,26 @@ const lbl=d=>d<0?'期限切れ':d===0?'今日まで':d===1?'明日まで':'あ�
 const md=exp=>{const p=exp.split('-');return (+p[1])+'/'+(+p[2])};
 
 // ---- 保存（スマホの中だけ） ----
-const KEY='gohanban-v3';
+const KEY='gohanban-v4';
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 if(!S){S={sample:true,kid:false,quick:false,alg:[],items:[
 ['卵',4,10],['牛乳',1,2],['もやし',1,1],['豚こま',1,1],['キャベツ',1,6],['にんじん',3,12],
 ['玉ねぎ',2,25],['豆腐',1,0],['ねぎ',1,5],['チーズ',1,15],['鶏もも',1,2],['じゃがいも',3,20]
-].map(([n,q,d],i)=>({id:i+1,n,q,exp:addDays(d),r:{'牛乳':2,'キャベツ':3,'チーズ':1}[n]||4})).concat([
+].map(([n,q,d])=>({id:uid(),n,q,exp:addDays(d),r:{'牛乳':2,'キャベツ':3,'チーズ':1}[n]||4})).concat([
 ['しょうゆ','キッコーマン いつでも新鮮 しぼりたて生しょうゆ',40],['みそ','マルコメ 料亭の味',30],['砂糖','',200],['塩','',300],
 ['油','日清オイリオ 日清キャノーラ油',25],['マヨネーズ','キユーピー マヨネーズ',12],['ケチャップ','カゴメ トマトケチャップ',2],['だし','味の素 ほんだし',150]
-].map(([n,b,d],i)=>({id:100+i,n,q:1,b,exp:addDays(d),r:{'ケチャップ':1,'マヨネーズ':2,'しょうゆ':3}[n]||4})))}}
+].map(([n,b,d])=>({id:uid(),n,q:1,b,exp:addDays(d),r:{'ケチャップ':1,'マヨネーズ':2,'しょうゆ':3}[n]||4})))}}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
-let nextId=Math.max(0,...S.items.map(i=>i.id))+1;
+if(!S.syn)S.syn={};if(!S.syn2)S.syn2={};if(!S.shop)S.shop=[];
 const food=n=>F[n]||{n,e:'🍽️',c:'その他',d:5};
 
 // ---- お知らせ ----
 const toast=document.getElementById('toast'),tMsg=document.getElementById('tMsg'),tUndo=document.getElementById('tUndo');
 let tTimer,undoSnap=null;
-function say(msg,snap){tMsg.textContent=msg;undoSnap=snap||null;tUndo.hidden=!snap;toast.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>toast.classList.remove('on'),4000)}
-tUndo.onclick=()=>{if(undoSnap){S.items=undoSnap;save();render();say('元に戻しました')}};
+let undoShop=null;
+function say(msg,snap,shopSnap){tMsg.textContent=msg;undoSnap=snap||null;undoShop=shopSnap||null;tUndo.hidden=!snap&&!shopSnap;toast.classList.add('on');clearTimeout(tTimer);tTimer=setTimeout(()=>toast.classList.remove('on'),4000)}
+tUndo.onclick=()=>{if(undoSnap)S.items=undoSnap;if(undoShop)S.shop=undoShop;if(undoSnap||undoShop){save();render();say('元に戻しました')}};
 const snap=()=>JSON.parse(JSON.stringify(S.items));
 // 残量を1段階減らす。0になったら予備を開ける／なければ使い切り
 function useOne(it){if(isA(it.n)){it.r=(it.r||4)-1;if(it.r<=0){if(it.q>1){it.q-=1;it.r=4}else it.q=0}}else it.q-=1}
@@ -302,7 +333,7 @@ function useOne(it){if(isA(it.n)){it.r=(it.r||4)-1;if(it.r<=0){if(it.q>1){it.q-=
 function addItem(name,q,b){
   const f=food(name),exp=addDays(f.d);b=b||'';
   const same=S.items.find(i=>i.n===name&&i.exp===exp&&(i.b||'')===b&&(i.r||4)===4);
-  if(same)same.q+=q;else S.items.push({id:nextId++,n:name,q,exp,b,r:4});
+  if(same)same.q+=q;else S.items.push({id:uid(),n:name,q,exp,b,r:4});
   S.sample=false;return f;
 }
 const z2h=s=>s.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248));
@@ -343,7 +374,7 @@ function card(r){
   const tags=(r.kid?'<span class="tag kid">子供が喜ぶ</span>':'')+r.tags.map(t=>'<span class="tag">'+t+'</span>').join('');
   const hint=r.urgent.length?'<p class="hint">使い切りチャンス：'+r.urgent.map(x=>x+'（'+lbl(h[x])+'）').join('、')+'</p>':'';
   const sz='<p class="sz">調味料：'+r.sz.map(x=>S.chkS&&r.sMiss.includes(x)?'<span class="m">'+x+'（なし）</span>':x).join('・')+'</p>';
-  const act=r.miss.length?'':'<button class="btn" data-cook="'+r.n+'">作った！</button>';
+  const act=r.miss.length?'<button class="btn" data-buy="'+r.n+'">買い物リストへ</button>':'<button class="btn" data-cook="'+r.n+'">作った！</button>';
   return '<article class="rc"><div class="rt"><span class="e">'+r.e+'</span><div><h3>'+r.n+'</h3><div class="meta">約'+r.m+'分</div><div>'+tags+'</div></div></div>'+
     '<div class="ing">'+ing+'</div>'+sz+hint+'<div class="acts">'+act+
     '<a class="ghost" href="https://cookpad.com/search/'+encodeURIComponent(r.n)+'" target="_blank" rel="noopener">作り方を見る ↗</a></div></article>';
@@ -379,8 +410,11 @@ function render(){
   document.getElementById('slist').innerHTML=si.length?si.map(row).join(''):'<p class="empty">調味料はまだ登録されていません。</p>';
   document.getElementById('seasBtn').setAttribute('aria-pressed',!!S.chkS);
   document.getElementById('seasNote').textContent=S.chkS?'登録した調味料で作れるかも判定しています。':'調味料はすべて家にあるものとして考えています。「🧂調味料もチェック」を押すと、登録した調味料で判定します。';
-  document.getElementById('sampleNote').hidden=!S.sample;
+  document.getElementById('sampleNote').hidden=!S.sample||!!S.fam;
+  renderShare();
+  renderShop();
   save();
+  if(S.fam)sync();
 }
 // よく買う物ボタン（分類ごと）
 const cats=[...new Set(FOODS.map(f=>f[2]))];
@@ -393,14 +427,172 @@ function openPick(n){
   pick.innerHTML='<h3>'+f.e+' '+n+' のメーカー</h3>'+f.p.map(b=>'<button data-sb="'+b+'" data-sn="'+n+'">'+b+'</button>').join('')+'<button class="x" data-sb="" data-sn="'+n+'">メーカーを選ばずに追加</button>';
   pick.hidden=false;if(pick.scrollIntoView)pick.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
+// ==== 作りたい料理 → 足りない物 → 買い物リスト ====
+let want='';
+function needList(r){
+  const h=have(),regS=S.items.some(i=>isS(i.n));
+  const st=x=>{const its=S.items.filter(i=>i.n===x&&i.q>0&&left(i.exp)>=0);
+    if(!its.length){if(isS(x)&&!S.chkS&&!regS)return ['mb','家にあるか確認'];return ['no','足りない']}
+    const it=its[0];if(isA(x)&&(it.r||4)===1&&its.length===1&&it.q<=1)return ['mb','残り少し'];
+    if(h[x]<=1)return ['mb',lbl(h[x])];
+    return ['ok2','ある']};
+  return r.need.concat(r.sz).map(x=>{const [c,t]=st(x);return {x,c,t}});
+}
+function inShop(n){return S.shop.some(s=>s.n===n)}
+function addShop(names,note){let k=0;names.forEach(n=>{const s=S.shop.find(v=>v.n===n);
+  if(s){if(note&&!(s.note||'').includes(note))s.note=(s.note?s.note+'・':'')+note}else{S.shop.push({id:uid(),n,note:note||''});k++}});return k}
+function renderWant(){
+  const q=z2h(want).trim();
+  const hits=q?RECIPES.filter(r=>r.n.includes(q)||r.need.some(x=>x.includes(q))):[];
+  document.getElementById('wantList').innerHTML=(q?hits:RECIPES).slice(0,q?20:12).map(r=>'<button class="tog" data-want="'+r.n+'">'+r.e+' '+r.n+'</button>').join('')+(q&&!hits.length?'<p class="empty">その料理はまだ登録されていません。近い名前で探してみてください。</p>':'');
+  const r=RECIPES.find(x=>x.n===want),box=document.getElementById('wantBox');
+  if(!r){box.innerHTML='';return}
+  const L=needList(r),miss=L.filter(v=>v.c==='no');
+  box.innerHTML='<div class="card" style="margin-top:12px"><div class="rt"><span class="e">'+r.e+'</span><div><h3>'+r.n+'</h3><div class="meta">約'+r.m+'分・'+(miss.length?'足りない物 '+miss.length+'品':'今ある物で作れます')+'</div></div></div>'+
+    '<form id="wantForm" style="margin-top:8px">'+L.map(v=>'<label class="wl"><input type="checkbox" value="'+v.x+'"'+(v.c==='no'&&!inShop(v.x)?' checked':'')+(inShop(v.x)?' disabled':'')+'>'+food(v.x).e+' '+v.x+'<span class="st '+v.c+'">'+(inShop(v.x)?'リストに入っています':v.t)+'</span></label>').join('')+
+    '<div class="acts" style="margin-top:10px"><button class="btn">チェックした物を買い物リストへ</button></div></form>'+
+    '<p class="note">「残り少し」「家にあるか確認」の物は、必要ならチェックを入れてください。</p></div>';
+}
+function renderShop(){
+  const n=S.shop.length;
+  document.getElementById('shopN').textContent=n?n:'';
+  document.getElementById('shopCnt').textContent=n?n+'品':'';
+  document.getElementById('shopList').innerHTML=n?S.shop.map(s=>'<div class="sl"><span class="e">'+(F[s.n]?F[s.n].e:'📝')+'</span><div><b>'+s.n+'</b>'+(s.note?'<small>'+s.note+'用</small>':'')+'</div><button class="btn" data-bought="'+s.id+'">買った</button><button class="x2" data-unshop="'+s.id+'" aria-label="'+s.n+'をリストから消す">×</button></div>').join(''):'<p class="empty">買い物リストは空です。作りたい料理を選ぶか、手で追加してください。</p>';
+  renderWant();
+}
+document.getElementById('wantIn').addEventListener('input',e=>{want=e.target.value;renderWant()});
+document.getElementById('v-shop').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(e.target.id==='wantForm'){const names=[...e.target.querySelectorAll('input:checked')].map(c=>c.value);
+    if(!names.length){say('買う物にチェックを入れてください');return}
+    const sn=snapShop();addShop(names,want);render();say(names.join('・')+'を買い物リストに入れました',null,sn);return}
+  if(e.target.id==='shopForm'){const inp=document.getElementById('shopIn'),t=z2h(inp.value).trim();if(!t)return;
+    const sn=snapShop();parse(t).forEach(([n])=>addShop([n],''));inp.value='';render();say('買い物リストに追加しました',null,sn)}
+});
+const snapShop=()=>JSON.parse(JSON.stringify(S.shop));
+
+// ==== 家族で共有（Supabase） ====
+let sb=null,syncing=false,again=false,chan=null,pt=null,net='';
+try{if(SUPA_URL&&SUPA_KEY&&window.supabase)sb=window.supabase.createClient(SUPA_URL,SUPA_KEY)}catch(e){sb=null}
+// 2つの表を同じ仕組みで同期する：items=冷蔵庫、shop=買い物リスト
+const TB={
+  items:{get:()=>S.items.filter(i=>i.q>0),syn:'syn',cols:'id,n,q,exp,b,r',
+    same:(a,b)=>!!a&&!!b&&a.n===b.n&&a.q===b.q&&a.exp===b.exp&&(a.b||'')===(b.b||'')&&(a.r||4)===(b.r||4),
+    row:i=>({id:i.id,family_id:S.fam.id,n:i.n,q:i.q,exp:i.exp,b:i.b||'',r:i.r||4}),
+    load:d=>({id:d.id,n:d.n,q:d.q,exp:d.exp,b:d.b||'',r:d.r||4}),set:v=>S.items=v},
+  shop:{get:()=>S.shop,syn:'syn2',cols:'id,n,note',
+    same:(a,b)=>!!a&&!!b&&a.n===b.n&&(a.note||'')===(b.note||''),
+    row:x=>({id:x.id,family_id:S.fam.id,n:x.n,note:x.note||''}),
+    load:d=>({id:d.id,n:d.n,note:d.note||''}),set:v=>S.shop=v}
+};
+function diffOf(t){const T=TB[t],cur=T.get(),old=S[T.syn]||{},ids=new Set(cur.map(i=>i.id));
+  return {cur:cur.map(i=>({...i})),up:cur.filter(i=>!T.same(i,old[i.id])),del:Object.keys(old).filter(id=>!ids.has(id))}}
+function hasDiff(){return Object.keys(TB).some(t=>{const d=diffOf(t);return d.up.length||d.del.length})}
+function setNet(v){net=v;const el=document.getElementById('syncLine');
+  el.textContent=!S.fam?'':v==='off'?'⚠️ オフライン（つながったら家族に送ります）':'👨‍👩‍👧 家族で共有中';
+  const st=document.getElementById('shareSt');if(st)st.textContent=el.textContent}
+// 変わった物だけを送る（追加・変更はupsert、消えた物はdelete）
+async function sync(){
+  if(!sb||!S.fam)return;
+  if(syncing){again=true;return}
+  syncing=true;
+  try{
+    for(const t of Object.keys(TB)){
+      const T=TB[t],d=diffOf(t);
+      if(d.up.length){const {error}=await sb.from(t).upsert(d.up.map(T.row));if(error)throw error}
+      if(d.del.length){const {error}=await sb.from(t).delete().in('id',d.del);if(error)throw error}
+      const syn={};d.cur.forEach(i=>syn[i.id]=i);S[T.syn]=syn;
+    }
+    save();setNet('ok');
+  }catch(e){setNet('off')}
+  syncing=false;
+  if(again){again=false;sync()}
+}
+// 家族の冷蔵庫と買い物リストを読み直す（自分の未送信の変更があるときは先に送る）
+async function pull(){
+  if(!sb||!S.fam)return;
+  if(hasDiff()){await sync();if(hasDiff())return}
+  const res={};
+  for(const t of Object.keys(TB)){const {data,error}=await sb.from(t).select(TB[t].cols).eq('family_id',S.fam.id);if(error){setNet('off');return}res[t]=data}
+  if(hasDiff()||syncing)return;
+  for(const t of Object.keys(TB)){const T=TB[t],v=res[t].map(T.load);T.set(v);const syn={};v.forEach(i=>syn[i.id]={...i});S[T.syn]=syn}
+  render();setNet('ok');
+}
+function listen(){
+  if(!sb||!S.fam||chan)return;
+  const kick=()=>{clearTimeout(pt);pt=setTimeout(pull,400)};
+  chan=sb.channel('gohan-sync').on('postgres_changes',{event:'*',schema:'public',table:'items'},kick).on('postgres_changes',{event:'*',schema:'public',table:'shop'},kick).subscribe();
+}
+async function ensureAuth(){
+  const {data}=await sb.auth.getSession();if(data&&data.session)return;
+  const {error}=await sb.auth.signInAnonymously();if(error)throw new Error('auth')
+}
+const ALPH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function genCode(){const a=new Uint32Array(12);crypto.getRandomValues(a);let c='';a.forEach((x,i)=>{c+=ALPH[x%32];if(i===3||i===7)c+='-'});return c}
+function normCode(v){const t=z2h(v).toUpperCase().replace(/[^A-Z0-9]/g,'');return t.length===12?t.slice(0,4)+'-'+t.slice(4,8)+'-'+t.slice(8):''}
+const errMsg=e=>String(e&&e.message||'').includes('auth')?'Supabaseで匿名ログイン（Anonymous sign-ins）を有効にしてください':String(e&&e.message||'').includes('not found')?'その家族コードは見つかりませんでした':'つながりませんでした。電波を確認してもう一度試してください';
+async function createFam(){
+  try{await ensureAuth();const code=genCode();
+    const {data,error}=await sb.rpc('create_family',{p_code:code});if(error)throw error;
+    if(S.sample){S.items=[];S.sample=false}
+    S.fam={id:data,code};S.syn={};S.syn2={};render();listen();say('家族を作りました。コードを家族に教えてください')}
+  catch(e){say(errMsg(e))}
+}
+async function joinFam(){
+  const code=normCode(document.getElementById('famIn').value);
+  if(!code){say('家族コードは12文字です（例：ABCD-EFGH-JK23）');return}
+  try{await ensureAuth();
+    const {data,error}=await sb.rpc('join_family',{p_code:code});if(error)throw error;
+    S.fam={id:data,code};S.items=[];S.shop=[];S.syn={};S.syn2={};S.sample=false;save();await pull();render();listen();say('家族の冷蔵庫に参加しました')}
+  catch(e){say(errMsg(e))}
+}
+let leaveArm=false;
+async function leaveFam(btn){
+  if(!leaveArm){leaveArm=true;btn.textContent='もう一度押すと共有をやめます';return}
+  leaveArm=false;
+  try{await sb.rpc('leave_family',{p_fid:S.fam.id})}catch(e){}
+  if(chan){sb.removeChannel(chan);chan=null}
+  S.fam=null;S.syn={};S.syn2={};render();setNet('');say('共有をやめました。今の中身はこのスマホに残っています');
+}
+function renderShare(){
+  const el=document.getElementById('share');
+  if(!sb){el.innerHTML='<p class="empty">共有するには、Supabaseの設定（URLとキー）が必要です。設定するとここに「家族を作る」ボタンが出ます。</p>';return}
+  if(!S.fam){el.innerHTML='<p style="margin:0 0 10px">家族みんなで同じ冷蔵庫を見られるようにします。ログインは要りません。</p>'+
+    '<div class="acts"><button class="btn" id="famNew">家族を作る</button></div>'+
+    '<p class="note">家族コードをもらった人はこちら（参加すると、このスマホの中身は家族の冷蔵庫に置き換わります）</p>'+
+    '<form class="say" id="famForm" style="margin-top:6px"><input id="famIn" placeholder="ABCD-EFGH-JK23" autocomplete="off" autocapitalize="characters"><button class="btn" style="flex:none">参加する</button></form>';
+    return}
+  el.innerHTML='<p class="meta" id="shareSt" style="margin:0"></p><p style="margin:4px 0 2px">家族コード</p>'+
+    '<p style="font-size:26px;font-weight:900;letter-spacing:.06em;margin:0 0 8px;white-space:nowrap">'+S.fam.code+'</p>'+
+    '<div class="acts"><button class="btn" id="famCopy">コードをコピー</button><button class="ghost" id="famLeave">共有をやめる</button></div>'+
+    '<p class="note">このコードを家族に送って、「参加する」に入力してもらってください。コードを知っている人は誰でも見られるので、家族以外には教えないでください。</p>';
+  setNet(net);
+}
+document.getElementById('share').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.id==='famNew')createFam();
+  if(b.id==='famLeave')leaveFam(b);
+  if(b.id==='famCopy'){try{navigator.clipboard.writeText(S.fam.code).then(()=>say('コピーしました'),()=>say('コピーできませんでした。長押しで選んでください'))}catch(err){say('コピーできませんでした。長押しで選んでください')}}
+});
+document.getElementById('share').addEventListener('submit',e=>{e.preventDefault();joinFam()});
+// 起動時・電波が戻ったとき・画面に戻ったときに読み直す
+async function boot(){if(!sb||!S.fam)return;try{await ensureAuth();await sb.rpc('join_family',{p_code:S.fam.code})}catch(e){setNet('off')}await pull();listen()}
+window.addEventListener('online',pull);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pull()});
+setInterval(pull,60000);
+
 // ---- 操作 ----
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.v){document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-current',x===b));['home','fridge','add'].forEach(v=>document.getElementById('v-'+v).hidden=v!==b.dataset.v);window.scrollTo(0,0);render();return}
+  if(b.dataset.v){document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-current',x===b));['home','fridge','add','shop'].forEach(v=>document.getElementById('v-'+v).hidden=v!==b.dataset.v);window.scrollTo(0,0);render();return}
   if(b.dataset.add){const sn=snap(),f=addItem(b.dataset.add,1);render();say(f.e+' '+f.n+'を追加（期限 '+md(addDays(f.d))+' 目安）',sn);return}
   if(b.dataset.q){const it=S.items.find(i=>i.id==b.dataset.q);if(it){const sn=snap();it.q+= +b.dataset.d;render();if(it.q<=0)say(it.n+'を使い切りました',sn)}return}
   if(b.dataset.g){const it=S.items.find(i=>i.id==b.dataset.g);if(it){it.r=+b.dataset.k;render()}return}
   if(b.dataset.use){const it=S.items.find(i=>i.id==b.dataset.use);if(it){const sn=snap(),had=it.q;if(had>1){it.q-=1;it.r=4}else it.q=0;render();say(it.n+(had>1?'を1つ使い切りました。予備を開けました':'を使い切りました'),sn)}return}
+  if(b.dataset.want){want=b.dataset.want;document.getElementById('wantIn').value=want;renderWant();const w=document.getElementById('wantBox');if(w.scrollIntoView)w.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(b.dataset.buy){const r=RECIPES.find(x=>x.n===b.dataset.buy),m=needList(r).filter(v=>v.c==='no').map(v=>v.x),sn=snapShop();addShop(m,r.n);render();say(m.join('・')+'を買い物リストに入れました',null,sn);return}
+  if(b.dataset.bought){const s=S.shop.find(x=>x.id===b.dataset.bought);if(s){const sn=snap(),ss=snapShop();S.shop=S.shop.filter(x=>x!==s);const isF=!!F[s.n];if(isF)addItem(s.n,1);render();say(isF?food(s.n).e+' '+s.n+'を冷蔵庫に入れました':s.n+'を買いました',sn,ss)}return}
+  if(b.dataset.unshop){const ss=snapShop();S.shop=S.shop.filter(x=>x.id!==b.dataset.unshop);render();say('リストから消しました',null,ss);return}
   if(b.dataset.sp){openPick(b.dataset.sp);return}
   if(b.dataset.sn){const sn=snap(),f=addItem(b.dataset.sn,1,b.dataset.sb);pick.hidden=true;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed','false'));render();say(f.e+' '+f.n+(b.dataset.sb?'（'+b.dataset.sb+'）':'')+'を追加',sn);return}
   if(b.dataset.more){shown[b.dataset.more]+=4;render();return}
@@ -430,7 +622,7 @@ document.getElementById('micBtn').onclick=()=>{
     r.onerror=()=>say('マイクが使えませんでした。キーボードのマイクで話してください');r.start();say('どうぞ、食材を話してください')}
   catch(err){say('マイクが使えませんでした。キーボードのマイクで話してください')}
 };
-render();
+render();boot();
 }
 </script>
 </body>
